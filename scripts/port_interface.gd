@@ -60,9 +60,9 @@ func _refresh_market_list():
 	
 	for item in GameManager.all_items:
 		var row = HBoxContainer.new()
-		var price = GameManager.current_prices[item.name]
-		var owned = GameManager.inventory[item.name]
-		var avg = GameManager.avg_costs[item.name]
+		var price = MarketManager.current_prices[item.name]
+		var owned = InventoryManager.get_item_count(item.name)
+		var avg = MarketManager.avg_costs[item.name]
 		
 		# Labels
 		var lbl = Label.new()
@@ -98,14 +98,14 @@ func _show_shipyard():
 	_update_shipyard_ui()
 
 func _update_shipyard_ui():
-	var hull_cost = (GameManager.current_ship_data.max_hull - GameManager.current_hull) * 5
+	var hull_cost = (PlayerManager.current_ship_data.max_hull - PlayerManager.current_hull) * 5
 	var lbl = $ShipyardLayer/Margin/VBox/InfoLbl
-	lbl.text = "Hull: %d/%d (Repair: %d g)" % [GameManager.current_hull, GameManager.current_ship_data.max_hull, hull_cost]
+	lbl.text = "Hull: %d/%d (Repair: %d g)" % [PlayerManager.current_hull, PlayerManager.current_ship_data.max_hull, hull_cost]
 	
 	var repair_btn = $ShipyardLayer/Margin/VBox/RepairBtn
 	if repair_btn.is_connected("pressed", _on_repair): repair_btn.disconnect("pressed", _on_repair)
 	repair_btn.pressed.connect(_on_repair.bind(hull_cost))
-	repair_btn.disabled = (hull_cost == 0 or GameManager.gold < hull_cost)
+	repair_btn.disabled = (hull_cost == 0 or PlayerManager.gold < hull_cost)
 	
 	# Ship Buying Logic (Simplified)
 	var buy_lbl = $ShipyardLayer/Margin/VBox/OfferLbl
@@ -117,21 +117,20 @@ func _update_shipyard_ui():
 		buy_btn.visible = true
 		if buy_btn.is_connected("pressed", _on_buy_ship): buy_btn.disconnect("pressed", _on_buy_ship)
 		buy_btn.pressed.connect(_on_buy_ship.bind(ship_offer_id))
-		buy_btn.disabled = (GameManager.gold < s_data.price)
+		buy_btn.disabled = (PlayerManager.gold < s_data.price)
 	else:
 		buy_lbl.text = "No ships for sale."
 		buy_btn.visible = false
 
 func _on_repair(cost):
-	GameManager.gold -= cost
-	GameManager.current_hull = GameManager.current_ship_data.max_hull
-	GameManager.emit_signal("stats_changed")
+	PlayerManager.repair_full(cost)
+	Events.emit_signal("stats_changed")
 	_update_shipyard_ui()
 
 func _on_buy_ship(s_id):
 	var data = GameManager.all_ships[s_id]
-	GameManager.gold -= data.price
-	GameManager.set_ship(s_id)
+	if PlayerManager.deduct_gold(data.price):
+		PlayerManager.set_ship(s_id)
 	ship_offer_id = ""
 	_update_shipyard_ui()
 
@@ -146,14 +145,14 @@ var t_max: int
 func _open_transaction(item, mode):
 	t_item = item
 	t_mode = mode
-	var price = GameManager.current_prices[item]
+	var price = MarketManager.current_prices[item]
 	
 	if mode == "BUY":
-		var space = GameManager.current_ship_data.cargo_capacity - GameManager.get_cargo_count()
-		var afford = floor(GameManager.gold / float(price))
+		var space = PlayerManager.current_ship_data.cargo_capacity - InventoryManager.get_total_cargo()
+		var afford = floor(PlayerManager.gold / float(price))
 		t_max = int(min(space, afford))
 	else:
-		t_max = GameManager.inventory[item]
+		t_max = InventoryManager.get_item_count(item)
 	
 	var vb = trans_panel.get_node("VBox")
 	vb.get_node("Title").text = "%s %s" % [mode, item]

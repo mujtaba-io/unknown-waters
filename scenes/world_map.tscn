@@ -55,7 +55,7 @@ end_cap_mode = 2
 [node name="DestMark" type="Node2D" parent="."]
 visible = false
 z_index = 290
-scale = Vector2(1.0558963, 1.0558963)
+scale = Vector2(0.91446704, 0.91446704)
 script = ExtResource("7_mark")
 
 [node name="Islands" parent="." instance=ExtResource("2_qqero")]

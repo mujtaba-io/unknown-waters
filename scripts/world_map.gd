@@ -2,8 +2,11 @@ extends Node2D
 
 signal reached_destination
 
-const SHIP_SPEED = 125.0
-const EVENT_CHANCE_TICK = 0.004
+@export var config: GameConfig = preload("res://resources/default_game_config.tres")
+
+# Constants replaced by config
+# const SHIP_SPEED = 125.0
+# const EVENT_CHANCE_TICK = 0.004
 
 @onready var ship = $Ship
 @onready var trail_line = $TrailLine 
@@ -19,7 +22,7 @@ var current_port_node: Node2D = null
 func _ready():
 	# Initialize ship look
 	update_ship_visuals()
-	GameManager.stats_changed.connect(update_ship_visuals)
+	Events.stats_changed.connect(update_ship_visuals)
 	
 	# Connect Islands
 	for node in $Islands.get_children():
@@ -95,7 +98,8 @@ func _process_movement(delta):
 	var dir = ship.position.direction_to(next_path_pos)
 	
 	# ship.rotation = lerp_angle(ship.rotation, dir.angle(), 8.0 * delta) # DISABLED ROTATION
-	ship.position += dir * SHIP_SPEED * delta
+	var speed = config.ship_speed if config else 125.0
+	ship.position += dir * speed * delta
 	
 	nav_timer += delta
 	if nav_timer > 0.1:
@@ -104,12 +108,21 @@ func _process_movement(delta):
 	
 	# Random Encounter Check
 	var dist_to_target = ship.position.distance_to(target_pos)
-	if trip_time > 1.0 and dist_to_target > 50.0 and randf() < EVENT_CHANCE_TICK:
-		is_moving = false # Pause movement
-		if randf() < 0.3:
-			GameManager.emit_signal("storm_started")
-		else:
-			GameManager.emit_signal("battle_started")
+	
+	if config:
+		if trip_time > config.min_trip_time_before_event and dist_to_target > config.min_dist_before_event and randf() < config.event_chance_tick:
+			is_moving = false # Pause movement
+			# Battle vs Storm
+			if randf() > config.battle_probability: # e.g. if prob is 0.7, >0.7 (30%) is Storm
+				Events.emit_signal("storm_started")
+			else:
+				Events.emit_signal("battle_started")
+	else:
+		# Fallback
+		if trip_time > 1.0 and dist_to_target > 50.0 and randf() < 0.004:
+			is_moving = false
+			if randf() < 0.3: Events.emit_signal("storm_started")
+			else: Events.emit_signal("battle_started")
 
 func _process_idle_port_anim(delta):
 	# Port should be static
@@ -131,7 +144,7 @@ func _on_island_input(_vp, event, _idx, node):
 		if not is_moving:
 			var dest_name = node.get_meta("name")
 			if dest_name != GameManager.current_location_name:
-				GameManager.emit_signal("navigation_requested", node.position, dest_name)
+				Events.emit_signal("navigation_requested", node.position, dest_name)
 
 func _update_current_port_from_manager():
 	current_port_node = null

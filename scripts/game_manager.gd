@@ -1,10 +1,6 @@
 extends Node
 
-signal stats_changed
-signal navigation_requested(target_pos, location_name)
-signal battle_started
-signal storm_started
-signal battle_ended(won)
+# Signals moved to Events autoload
 
 # --- CONFIG ---
 @export_group("Database")
@@ -15,23 +11,43 @@ signal battle_ended(won)
 var all_ships: Dictionary = {} # Map name to Resource
 var enemy_ships: Dictionary = {} # Map name to Resource
 
-# --- PLAYER STATE ---
-var gold: int = 1000
-var current_ship_data: ShipData
-var current_hull: int = 100
-var inventory: Dictionary = {} # Name: Amount
-var avg_costs: Dictionary = {} # Name: AvgPrice
+# --- PLAYER STATE PROXIES ---
+var gold: int:
+	get: return PlayerManager.gold
+	set(val): PlayerManager.gold = val
+
+var current_ship_data: ShipData:
+	get: return PlayerManager.current_ship_data
+	set(val): PlayerManager.current_ship_data = val
+
+var current_hull: int:
+	get: return PlayerManager.current_hull
+	set(val): PlayerManager.current_hull = val
+
+var inventory: Dictionary:
+	get: return InventoryManager.inventory
+	set(val): InventoryManager.inventory = val
+
+var avg_costs: Dictionary:
+	get: return MarketManager.avg_costs
+	set(val): MarketManager.avg_costs = val
+
 var current_location_name: String = "Blackwater Bay"
 
-# --- MARKET STATE ---
-var current_prices: Dictionary = {}
+# --- MARKET STATE PROXIES ---
+var current_prices: Dictionary:
+	get: return MarketManager.current_prices
+	set(val): MarketManager.current_prices = val
 
 func _ready():
 	_build_databases()
-	# Default setup
-	set_ship("sloop")
-	inventory = {"Timber": 0, "Fish": 0, "Sugarcane": 0}
-	avg_costs = {"Timber": 0.0, "Fish": 0.0, "Sugarcane": 0.0}
+	
+	# Initial Setup
+	# Note: Managers init their own defaults, but we can override or sync here if needed.
+	# For now, we trust Managers' defaults or set specific start values.
+	PlayerManager.set_ship("sloop")
+	
+	# Pass DB to MarketManager
 	randomize_market_prices()
 
 func _build_databases():
@@ -46,34 +62,31 @@ func _build_databases():
 
 func set_ship(ship_id: String):
 	if ship_id in all_ships:
-		current_ship_data = all_ships[ship_id]
-		current_hull = current_ship_data.max_hull
-		emit_signal("stats_changed")
+		# Update PlayerManager
+		PlayerManager.set_ship(ship_id)
 
 func get_cargo_count() -> int:
-	var total = 0
-	for key in inventory:
-		total += inventory[key]
-	return total
+	return InventoryManager.get_total_cargo()
 
 func randomize_market_prices():
-	for item in all_items:
-		var mult = randf_range(0.7, 1.4)
-		current_prices[item.name] = int(item.base_price * mult)
+	MarketManager.randomize_market_prices(all_items)
 
 func transaction(item_name: String, amount: int, is_buying: bool):
-	var price = current_prices[item_name]
-	if is_buying:
-		var total_cost = amount * price
-		if gold >= total_cost:
-			gold -= total_cost
-			var old_val = inventory[item_name] * avg_costs[item_name]
-			avg_costs[item_name] = (old_val + total_cost) / (inventory[item_name] + amount)
-			inventory[item_name] += amount
-	else:
-		gold += amount * price
-		inventory[item_name] -= amount
-		if inventory[item_name] == 0:
-			avg_costs[item_name] = 0.0
+	# Calculate
+	var result = MarketManager.calculate_transaction(item_name, amount, is_buying, gold)
 	
-	emit_signal("stats_changed")
+	if result.success:
+		if is_buying:
+			PlayerManager.deduct_gold(result.cost)
+			InventoryManager.add_item(item_name, amount)
+			MarketManager.update_avg_cost(item_name, amount, result.cost, InventoryManager.get_item_count(item_name) - amount)
+		else:
+			PlayerManager.add_gold(result.gain)
+			InventoryManager.remove_item(item_name, amount)
+			if InventoryManager.get_item_count(item_name) == 0:
+				MarketManager.reset_avg_cost(item_name)
+		
+		Events.emit_signal("transaction_completed", item_name, amount, is_buying)
+		Events.emit_signal("stats_changed")
+	else:
+		push_warning("Transaction failed: " + result.get("reason", "Unknown"))

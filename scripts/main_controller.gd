@@ -13,10 +13,10 @@ var current_state: State = State.PORT
 
 func _ready():
 	# Connect Global Signals
-	GameManager.navigation_requested.connect(_on_sail_requested)
-	GameManager.battle_started.connect(_on_battle_encounter)
-	GameManager.storm_started.connect(_on_storm_encounter)
-	GameManager.stats_changed.connect(_update_hud)
+	Events.navigation_requested.connect(_on_sail_requested)
+	Events.battle_started.connect(_on_battle_encounter)
+	Events.storm_started.connect(_on_storm_encounter)
+	Events.stats_changed.connect(_update_hud)
 	
 	# Connect Local Signals
 	world_map.reached_destination.connect(_on_arrival)
@@ -174,7 +174,7 @@ func _on_battle_end(result: BattleView.BattleResult):
 		if alpha_harbor:
 			world_map.ship.position = alpha_harbor.position
 		
-		GameManager.emit_signal("stats_changed")
+		Events.emit_signal("stats_changed")
 		_switch_to_port()
 
 func _resume_sailing():
