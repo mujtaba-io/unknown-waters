@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ShipData" load_steps=3 format=3 uid="uid://bob3dnsr46885"]
+
+[ext_resource type="Script" uid="uid://b34rkb8d57igq" path="res://scripts/resources/ship_data.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://c3u64wj3f7aw5" path="res://assets/ui/enemy-sloop.png" id="2_73i2u"]
+
+[resource]
+script = ExtResource("1")
+id = "caravel"
+name = "Enemy Caravel"
+price = 2500
+cargo_capacity = 120
+max_hull = 250
+color = Color(0.2, 0.6, 1, 1)
+visual_polygon = PackedVector2Array(0, -25, 12, 5, 12, 15, 0, 10, -12, 15, -12, 5)
+texture = ExtResource("2_73i2u")
+texture_scale = Vector2(0.3, 0.3)
+type = 1

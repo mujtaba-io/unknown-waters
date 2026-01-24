@@ -1,0 +1,337 @@
+[gd_scene load_steps=10 format=3 uid="uid://n4lkstq04i51"]
+
+[ext_resource type="Script" uid="uid://bdv5chbbt2rhe" path="res://scripts/port_interface.gd" id="1_port"]
+[ext_resource type="FontFile" uid="uid://b2mqq1ske8dy" path="res://assets/IM_Fell_English/IMFellEnglish-Italic.ttf" id="2_34coa"]
+[ext_resource type="Shader" path="res://resources/shaders/parchment.gdshader" id="3_parchment"]
+[ext_resource type="Shader" path="res://resources/shaders/wood.gdshader" id="4_wood"]
+[ext_resource type="FontFile" uid="uid://d1qcor30kfluu" path="res://assets/IM_Fell_English/IMFellEnglish-Regular.ttf" id="5_font_reg"]
+[ext_resource type="Theme" path="res://resources/pixel_pirate.tres" id="theme_pirate"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_parchment"]
+shader = ExtResource("3_parchment")
+shader_parameter/paper_color = Color(0.85, 0.78, 0.65, 1)
+shader_parameter/stain_color = Color(0.75, 0.65, 0.5, 1)
+shader_parameter/noise_scale = 5.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_wood"]
+shader = ExtResource("4_wood")
+shader_parameter/base_color = Color(0.4, 0.25, 0.15, 1)
+shader_parameter/dark_color = Color(0.25, 0.15, 0.05, 1)
+shader_parameter/grain_scale = 10.0
+shader_parameter/distortion = 0.5
+
+
+
+
+
+[node name="PortInterface" type="Control"]
+layout_mode = 3
+anchor_left = 0.3
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -102.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_port")
+theme = ExtResource("theme_pirate")
+
+[node name="PortLayer" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BG" type="ColorRect" parent="PortLayer"]
+material = SubResource("ShaderMaterial_parchment")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Header" type="ColorRect" parent="PortLayer"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 120.0
+grow_horizontal = 2
+color = Color(0.1, 0.09, 0.08, 0.8)
+
+[node name="Label" type="Label" parent="PortLayer/Header"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.85, 0.78, 0.65, 1)
+theme_override_fonts/font = ExtResource("2_34coa")
+theme_override_font_sizes/font_size = 40
+text = "PORT NAME"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Center" type="CenterContainer" parent="PortLayer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HBox" type="HBoxContainer" parent="PortLayer/Center"]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="MarketBtn" type="Button" parent="PortLayer/Center/HBox"]
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.8, 1)
+theme_override_fonts/font = ExtResource("5_font_reg")
+theme_override_font_sizes/font_size = 28
+
+text = "Marketplace"
+
+[node name="ShipyardBtn" type="Button" parent="PortLayer/Center/HBox"]
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.8, 1)
+theme_override_fonts/font = ExtResource("5_font_reg")
+theme_override_font_sizes/font_size = 28
+
+text = "Shipyard"
+
+[node name="MarketLayer" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BG" type="ColorRect" parent="MarketLayer"]
+material = SubResource("ShaderMaterial_parchment")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="MarketLayer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 30
+theme_override_constants/margin_top = 30
+theme_override_constants/margin_right = 30
+theme_override_constants/margin_bottom = 30
+
+[node name="VBox" type="VBoxContainer" parent="MarketLayer/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="HBox" type="HBoxContainer" parent="MarketLayer/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="BackBtn" type="Button" parent="MarketLayer/Margin/VBox/HBox"]
+custom_minimum_size = Vector2(120, 50)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.8, 1)
+theme_override_fonts/font = ExtResource("5_font_reg")
+theme_override_font_sizes/font_size = 20
+
+text = "< BACK"
+
+[node name="Lbl" type="Label" parent="MarketLayer/Margin/VBox/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.25, 0.15, 0.1, 1)
+theme_override_fonts/font = ExtResource("2_34coa")
+theme_override_font_sizes/font_size = 36
+text = "Local Marketplace"
+horizontal_alignment = 1
+
+[node name="Scroll" type="ScrollContainer" parent="MarketLayer/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ItemContainer" type="VBoxContainer" parent="MarketLayer/Margin/VBox/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="ShipyardLayer" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BG" type="ColorRect" parent="ShipyardLayer"]
+material = SubResource("ShaderMaterial_wood")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="ShipyardLayer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 50
+theme_override_constants/margin_top = 50
+theme_override_constants/margin_right = 50
+theme_override_constants/margin_bottom = 50
+
+[node name="VBox" type="VBoxContainer" parent="ShipyardLayer/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 30
+alignment = 1
+
+[node name="BackBtn" type="Button" parent="ShipyardLayer/Margin/VBox"]
+custom_minimum_size = Vector2(120, 50)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_fonts/font = ExtResource("5_font_reg")
+theme_override_font_sizes/font_size = 20
+
+text = "< BACK"
+
+[node name="Title" type="Label" parent="ShipyardLayer/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+theme_override_fonts/font = ExtResource("2_34coa")
+text = "Local Shipyard"
+horizontal_alignment = 1
+
+[node name="InfoLbl" type="Label" parent="ShipyardLayer/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+theme_override_fonts/font = ExtResource("5_font_reg")
+text = "Hull Integrity: 100/100"
+horizontal_alignment = 1
+
+[node name="RepairBtn" type="Button" parent="ShipyardLayer/Margin/VBox"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+theme_override_fonts/font = ExtResource("5_font_reg")
+
+text = "REPAIR SHIP"
+
+[node name="HSeparator" type="HSeparator" parent="ShipyardLayer/Margin/VBox"]
+layout_mode = 2
+
+[node name="OfferLbl" type="Label" parent="ShipyardLayer/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+theme_override_fonts/font = ExtResource("5_font_reg")
+text = "For Sale: Sloop"
+horizontal_alignment = 1
+
+[node name="BuyShipBtn" type="Button" parent="ShipyardLayer/Margin/VBox"]
+custom_minimum_size = Vector2(0, 70)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+theme_override_fonts/font = ExtResource("5_font_reg")
+
+text = "BUY SHIP"
+
+[node name="Overlay" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TransactionPanel" type="Panel" parent="Overlay"]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -125.0
+offset_right = 250.0
+offset_bottom = 125.0
+grow_horizontal = 2
+grow_vertical = 2
+
+
+[node name="VBox" type="VBoxContainer" parent="Overlay/TransactionPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 15
+
+[node name="Title" type="Label" parent="Overlay/TransactionPanel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.76, 0.64, 0.23, 1)
+theme_override_font_sizes/font_size = 24
+text = "BUY ITEM"
+horizontal_alignment = 1
+
+[node name="HBox" type="HBoxContainer" parent="Overlay/TransactionPanel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Label" type="Label" parent="Overlay/TransactionPanel/VBox/HBox"]
+layout_mode = 2
+text = "Amount:"
+
+[node name="MaxBtn" type="Button" parent="Overlay/TransactionPanel/VBox/HBox"]
+layout_mode = 2
+size_flags_horizontal = 10
+text = "MAX"
+
+[node name="SpinBox" type="SpinBox" parent="Overlay/TransactionPanel/VBox"]
+layout_mode = 2
+max_value = 1000.0
+
+[node name="Spacer" type="Control" parent="Overlay/TransactionPanel/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HBox2" type="HBoxContainer" parent="Overlay/TransactionPanel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Confirm" type="Button" parent="Overlay/TransactionPanel/VBox/HBox2"]
+custom_minimum_size = Vector2(100, 40)
+layout_mode = 2
+text = "CONFIRM"
+
+[node name="Cancel" type="Button" parent="Overlay/TransactionPanel/VBox/HBox2"]
+custom_minimum_size = Vector2(100, 40)
+layout_mode = 2
+text = "CANCEL"

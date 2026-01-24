@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ShipData" load_steps=3 format=3 uid="uid://43ngdxd5j1io"]
+
+[ext_resource type="Script" uid="uid://b34rkb8d57igq" path="res://scripts/resources/ship_data.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://cloyb0ifqmv5u" path="res://assets/ui/enemy-galleon.png" id="2_7d682"]
+
+[resource]
+script = ExtResource("1")
+id = "galleon"
+name = "Enemy Galleon"
+price = 6000
+cargo_capacity = 300
+max_hull = 600
+color = Color(0.2, 0.2, 0.2, 1)
+visual_polygon = PackedVector2Array(0, -35, 15, -10, 18, 20, 0, 15, -18, 20, -15, -10)
+texture = ExtResource("2_7d682")
+texture_scale = Vector2(0.3, 0.3)
+type = 1

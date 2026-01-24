@@ -1,0 +1,184 @@
+[gd_scene load_steps=14 format=3 uid="uid://b6jkxcov6trtp"]
+
+[ext_resource type="Script" uid="uid://cb2n5nrhe3i6m" path="res://scripts/world_map.gd" id="1_map"]
+[ext_resource type="PackedScene" uid="uid://cktw7e7pfgbqo" path="res://misc/Terrain.tscn" id="2_qqero"]
+[ext_resource type="Texture2D" uid="uid://bba48saul8u5a" path="res://assets/ui/sailboat.png" id="5_qj3iy"]
+[ext_resource type="Shader" uid="uid://d4ewroutpf0k2" path="res://resources/shaders/dashed_line.gdshader" id="6_dash"]
+[ext_resource type="Script" uid="uid://dn1s5beshintm" path="res://scripts/ui/dest_mark.gd" id="7_mark"]
+[ext_resource type="Script" uid="uid://bt8x1we8yyc41" path="res://scripts/ui/map_dot.gd" id="8_dot"]
+[ext_resource type="Theme" uid="uid://d2i5mtbiap2py" path="res://resources/pixel_pirate.tres" id="theme_pirate"]
+
+[sub_resource type="NavigationPolygon" id="NavigationPolygon_27p3u"]
+vertices = PackedVector2Array(486.04688, 578, 529.21875, 595.46875, 610.21875, 646.64844, 697.6328, 706.85156, 289.78125, 705.03906, 413.3672, 578, 1107.25, 675.47656, 1134.6563, 713.0781, 958.15625, 705.21875, 929.3203, 666.7578, 899.2031, 524.15625, 695.8828, 212.25781, 653.75, 191.20313, 679.3906, 175.82813, 1083.6328, 66.84375, 1065.4063, 18, 1239.1484, 18, 1143.3672, 84.77344, 1242.8516, 253.89844, 1186.4609, 186.40625, 1196.7891, 258.2578, 1102.9688, 297.35156, 1118.6875, 305.35156, 945.5078, 53.09375, 1001.28906, 22.976563, 1008.53125, 53.25, 955.7031, 185.85938, 941.28906, 162.14844, 658.53906, 85.92969, 604.1875, 120.78125, 585.1172, 67.22656, 612.96875, 49.921875, 674.14844, 48.21875, 694.35156, 132.64844, 728.77344, 243.42969, 1163.5313, 388.8125, 1225.4531, 362.1328, 1242.3125, 453.21875, 1197.8281, 507.02344, 893.97656, 114.84375, 828.10156, 163.49219, 782.1406, 128.39063, 762.0781, 18.476563, 874.7578, 22.90625, 600.0625, 578.5078, 643.0625, 597.3672, 278.03906, 183.92188, 334.20313, 284.5703, 855.46094, 478.1797, 1018.6172, 227.40625, 1079.4766, 219.22656, 1090.0313, 294.0078, 504.65625, 254.28906, 522.65625, 208.85156, 563.71094, 224.45313, 670.4922, 473.96875, 1230.3984, 562.59375, 1175.4375, 596.28906, 303.39063, 124.46875, 330.40625, 38.75, 405.5625, 36.296875, 413.64844, 180.99219, 366.1328, 204.75781, 455.4297, 444.39844, 457.7578, 307.89063, 654.77344, 253.36719, 782.2578, 475, 882.0703, 219, 807.59375, 238.92969, 573.9922, 522, 611.4375, 522)
+polygons = Array[PackedInt32Array]([PackedInt32Array(0, 1, 2, 3, 4, 5), PackedInt32Array(6, 7, 8, 9, 10), PackedInt32Array(11, 12, 13), PackedInt32Array(14, 15, 16, 17), PackedInt32Array(17, 16, 18, 19), PackedInt32Array(19, 18, 20), PackedInt32Array(21, 19, 20, 22), PackedInt32Array(23, 24, 25, 26, 27), PackedInt32Array(28, 29, 30, 31, 32), PackedInt32Array(28, 32, 33, 13), PackedInt32Array(13, 33, 34, 11), PackedInt32Array(35, 36, 37, 38, 10), PackedInt32Array(39, 40, 41, 42, 43, 23), PackedInt32Array(44, 45, 2, 1), PackedInt32Array(5, 4, 46, 47), PackedInt32Array(48, 49, 50, 51, 10), PackedInt32Array(52, 53, 54, 55), PackedInt32Array(38, 56, 57, 10), PackedInt32Array(58, 59, 60, 61, 62), PackedInt32Array(46, 58, 62, 47), PackedInt32Array(63, 5, 47, 64), PackedInt32Array(55, 65, 11, 34, 66), PackedInt32Array(27, 39, 23), PackedInt32Array(67, 27, 26, 48), PackedInt32Array(57, 6, 10), PackedInt32Array(21, 22, 35, 10, 51), PackedInt32Array(26, 49, 48), PackedInt32Array(68, 67, 48, 66), PackedInt32Array(34, 68, 66), PackedInt32Array(54, 65, 55), PackedInt32Array(69, 63, 64, 52, 55, 70)])
+outlines = Array[PackedVector2Array]([PackedVector2Array(730, 717, 624, 644, 658, 593, 601, 568, 530, 585, 488, 568, 427, 568, 461, 460, 571, 532, 615, 532, 674, 484, 782, 485, 851, 488, 890, 529, 920, 671, 953, 715, 1155, 724, 1120, 676, 1182, 604, 1244, 566, 1210, 508, 1253, 456, 1233, 348, 1168, 376, 1132, 309, 1200, 268, 1253, 263, 1249, 8, 1051, 8, 1076, 75, 1136, 93, 1175, 185, 1099, 286, 1088, 208, 1021, 217, 968, 182, 1019, 54, 1008, 8, 945, 42, 877, 13, 750, 8, 773, 134, 828, 176, 893, 128, 927, 162, 877, 210, 806, 229, 736, 233, 704, 130, 682, 38, 610, 40, 573, 63, 599, 136, 652, 102, 668, 171, 633, 192, 679, 215, 679, 215, 652, 242, 567, 215, 517, 196, 496, 249, 454, 297, 348, 277, 374, 212, 374, 212, 424, 187, 415, 26, 323, 29, 294, 121, 268, 182, 280, 715)])
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_dash"]
+shader = ExtResource("6_dash")
+shader_parameter/dash_size = 20.0
+shader_parameter/gap_size = 15.0
+shader_parameter/color = Color(0.8, 0.2, 0.2, 0.7)
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_line"]
+size = Vector2(32, 4)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_u82pb"]
+radius = 27.166155
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_pls23"]
+radius = 27.166155
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_qj3iy"]
+radius = 27.166155
+
+[node name="WorldMap" type="Node2D"]
+script = ExtResource("1_map")
+
+[node name="Ocean" type="ColorRect" parent="."]
+offset_right = 1280.0
+offset_bottom = 720.0
+mouse_filter = 2
+color = Color(0.12549, 0.372549, 0.490196, 1)
+
+[node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
+navigation_polygon = SubResource("NavigationPolygon_27p3u")
+
+[node name="TrailLine" type="Line2D" parent="."]
+z_index = 285
+material = SubResource("ShaderMaterial_dash")
+width = 4.0
+texture = SubResource("PlaceholderTexture2D_line")
+texture_mode = 1
+begin_cap_mode = 2
+end_cap_mode = 2
+
+[node name="DestMark" type="Node2D" parent="."]
+visible = false
+z_index = 290
+scale = Vector2(1.0558963, 1.0558963)
+script = ExtResource("7_mark")
+
+[node name="Islands" parent="." instance=ExtResource("2_qqero")]
+
+[node name="IslandAlpha" type="Area2D" parent="Islands"]
+position = Vector2(527, 219)
+metadata/name = "Blackwater Bay"
+
+[node name="Visual" type="Node2D" parent="Islands/IslandAlpha"]
+script = ExtResource("8_dot")
+radius = 12.0
+color = Color(0.1, 0.1, 0.1, 1)
+
+[node name="Label" type="Label" parent="Islands/IslandAlpha"]
+texture_filter = 1
+offset_left = -53.0
+offset_top = -53.0
+offset_right = 86.0
+offset_bottom = -22.0
+theme = ExtResource("theme_pirate")
+theme_override_colors/font_color = Color(0.20899084, 0.1104084, 4.813075e-08, 1)
+text = "Blackwater Bay"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Islands/IslandAlpha"]
+shape = SubResource("CircleShape2D_u82pb")
+
+[node name="IslandBeta" type="Area2D" parent="Islands"]
+position = Vector2(990, 391)
+metadata/name = "Skull Rock"
+
+[node name="Visual" type="Node2D" parent="Islands/IslandBeta"]
+script = ExtResource("8_dot")
+radius = 12.0
+color = Color(0.1, 0.1, 0.1, 1)
+
+[node name="Label" type="Label" parent="Islands/IslandBeta"]
+texture_filter = 1
+offset_left = -31.0
+offset_top = -47.0
+offset_right = 63.0
+offset_bottom = -16.0
+theme = ExtResource("theme_pirate")
+theme_override_colors/font_color = Color(0.20784314, 0.10980392, 0, 1)
+text = "Skull Rock"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Islands/IslandBeta"]
+shape = SubResource("CircleShape2D_pls23")
+
+[node name="IslandGamma" type="Area2D" parent="Islands"]
+position = Vector2(901, 500)
+metadata/name = "Deadman's Anchor"
+
+[node name="Visual" type="Node2D" parent="Islands/IslandGamma"]
+script = ExtResource("8_dot")
+radius = 12.0
+color = Color(0.1, 0.1, 0.1, 1)
+
+[node name="Label" type="Label" parent="Islands/IslandGamma"]
+texture_filter = 1
+offset_left = -44.0
+offset_top = -44.0
+offset_right = 76.0
+offset_bottom = -13.0
+theme = ExtResource("theme_pirate")
+theme_override_colors/font_color = Color(0.20784314, 0.10980392, 0, 1)
+text = "Deadman's Anchor"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Islands/IslandGamma"]
+shape = SubResource("CircleShape2D_qj3iy")
+
+[node name="IslandTheeta" type="Area2D" parent="Islands"]
+position = Vector2(1165, 583)
+metadata/name = "Distant Land"
+
+[node name="Visual" type="Node2D" parent="Islands/IslandTheeta"]
+script = ExtResource("8_dot")
+radius = 12.0
+color = Color(0.1, 0.1, 0.1, 1)
+
+[node name="Label" type="Label" parent="Islands/IslandTheeta"]
+texture_filter = 1
+offset_left = -44.0
+offset_top = -44.0
+offset_right = 76.0
+offset_bottom = -13.0
+theme = ExtResource("theme_pirate")
+theme_override_colors/font_color = Color(0.20784314, 0.10980392, 0, 1)
+text = "Distant Land"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Islands/IslandTheeta"]
+shape = SubResource("CircleShape2D_qj3iy")
+
+[node name="IslandOmega" type="Area2D" parent="Islands"]
+position = Vector2(528, 603)
+metadata/name = "Land of Death"
+
+[node name="Visual" type="Node2D" parent="Islands/IslandOmega"]
+script = ExtResource("8_dot")
+radius = 12.0
+color = Color(0.1, 0.1, 0.1, 1)
+
+[node name="Label" type="Label" parent="Islands/IslandOmega"]
+texture_filter = 1
+offset_left = -44.0
+offset_top = -44.0
+offset_right = 76.0
+offset_bottom = -13.0
+theme = ExtResource("theme_pirate")
+theme_override_colors/font_color = Color(0.20784314, 0.10980392, 0, 1)
+text = "Land of Death"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Islands/IslandOmega"]
+shape = SubResource("CircleShape2D_qj3iy")
+
+[node name="Ship" type="Node2D" parent="."]
+position = Vector2(526, 220)
+
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="Ship"]
+path_desired_distance = 10.0
+path_max_distance = 50.0
+
+[node name="Sprite2D" type="Sprite2D" parent="Ship"]
+texture_filter = 1
+position = Vector2(0, -7)
+scale = Vector2(0.3, 0.3)
+texture = ExtResource("5_qj3iy")

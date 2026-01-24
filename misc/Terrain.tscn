@@ -1,0 +1,553 @@
+[gd_scene load_steps=4 format=3 uid="uid://cktw7e7pfgbqo"]
+
+[sub_resource type="GDScript" id="GDScript_phqa7"]
+script/source = "@tool
+extends Node2D
+
+# --- Configuration ---
+
+@export_category(\"Update\")
+@export var force_update: bool = false :
+	set(value): _request_regen()
+@export var auto_update_markers: bool = true # Updates when you move markers
+
+@export_category(\"Map Dimensions\")
+@export var map_seed: int = 350 :
+	set(value): map_seed = value; _request_regen()
+@export_range(64, 1024, 1) var map_width: int = 128 :
+	set(value): map_width = value; _request_regen()
+@export_range(64, 1024, 1) var map_height: int = 72 :
+	set(value): map_height = value; _request_regen()
+@export_range(4, 32, 1) var resolution: int = 10 : # Lower is blockier but faster
+	set(value): resolution = value; _request_regen()
+
+@export_category(\"Island Shape\")
+@export var island_radius: float = 300.0 : # Radius of a single marker's influence
+	set(value): island_radius = value; _request_regen()
+@export_range(0.1, 5.0) var falloff_curve: float = 0.385 : # 1.0 = Linear, 2.0 = Quadratic (smoother beaches)
+	set(value): falloff_curve = value; _request_regen()
+@export_range(0.005, 0.1) var noise_freq: float = 0.025 :
+	set(value): noise_freq = value; _request_regen()
+
+@export_category(\"Terrain Thresholds\")
+@export_range(0.0, 1.0) var sea_level: float = 0.4 :
+	set(value): sea_level = value; _request_regen()
+@export_range(0.0, 1.0) var grass_start: float = 0.5 :
+	set(value): grass_start = value; _request_regen()
+@export_range(0.0, 1.0) var mountain_start: float = 0.7 :
+	set(value): mountain_start = value; _request_regen()
+
+@export_category(\"Pirate Style\")
+@export var water_material: Material :
+	set(value): water_material = value; _request_regen()
+@export var paper_color: Color = Color(\"2b6d82\") : # Deep Water
+	set(value): paper_color = value; _request_regen()
+@export var outline_color: Color = Color(\"1a262b\") # Dark Ink
+@export var wobble_amp: float = 3.0 :
+	set(value): wobble_amp = value; _request_regen()
+@export var wobble_freq: float = 0.3 :
+	set(value): wobble_freq = value; _request_regen()
+@export_range(0, 5) var smoothness: int = 0 :
+	set(value): smoothness = value; _request_regen()
+
+@export var show_grid: bool = true :
+	set(value): show_grid = value; queue_redraw()
+
+@export var shallow_color: Color = Color(\"4fa4b8\") # Turquoise
+@export var sand_color: Color = Color(\"e8ddb5\") # Warm Sand
+@export var grass_color: Color = Color(\"8ab068\") # Jungle Green
+@export var mountain_color: Color = Color(\"8c969c\") # Slate Grey
+@export var snow_color: Color = Color(\"d3f4fa\") # Icy Blue
+@export var foam_color: Color = Color(\"c2ecf2\")
+
+# --- Internal ---
+var _noise: FastNoiseLite
+var _moist_noise: FastNoiseLite
+var _rng: RandomNumberGenerator
+
+var _polys_shallow: Array = []
+var _polys_sand: Array = []
+var _polys_grass: Array = []
+var _polys_mountain: Array = []
+var _polys_snow: Array = []
+var _props: Array = []
+
+enum PropType { NONE, PALM, PINE, MT_SMALL, RUINS }
+
+# Editor tracking
+var _last_marker_hash: int = 0
+var _cooldown: float = 0.0
+
+func _ready():
+	_init_noise()
+	generate_map()
+
+func _update_background():
+	var bg = get_node_or_null(\"WaterBackground\")
+	if not bg:
+		bg = ColorRect.new()
+		bg.name = \"WaterBackground\"
+		add_child(bg)
+		move_child(bg, 0) # Ensure it is first
+	
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.show_behind_parent = true
+	bg.size = Vector2(map_width * resolution, map_height * resolution)
+	
+	if water_material:
+		bg.material = water_material
+		bg.color = Color.WHITE # Material takes precedence
+	else:
+		bg.material = null
+		bg.color = paper_color
+
+func _process(delta):
+	if not Engine.is_editor_hint(): return
+	
+	if auto_update_markers:
+		_cooldown -= delta
+		if _cooldown <= 0:
+			var current_hash = _get_markers_hash()
+			if current_hash != _last_marker_hash:
+				_last_marker_hash = current_hash
+				generate_map()
+				_cooldown = 0.2 # Limit updates to 5 times a second
+
+func _init_noise():
+	_noise = FastNoiseLite.new()
+	_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
+	_noise.fractal_type = FastNoiseLite.FRACTAL_FBM
+	_noise.fractal_octaves = 4
+	
+	_moist_noise = FastNoiseLite.new()
+	_moist_noise.frequency = 0.02
+	_rng = RandomNumberGenerator.new()
+
+func _request_regen():
+	if is_inside_tree():
+		generate_map()
+
+func _get_markers_hash() -> int:
+	# Creates a unique ID based on children positions to detect movement
+	var children = get_children()
+	var h = 0
+	var count = 0
+	for c in children:
+		if c is Marker2D:
+			h += c.position.x + c.position.y
+			count += 1
+	return h + count
+
+func _get_marker_nodes() -> Array:
+	var markers = []
+	for c in get_children():
+		if c is Marker2D:
+			markers.append(c)
+	return markers
+
+# --- Core Logic ---
+
+func _get_distortion(pos: Vector2) -> Vector2:
+	var nx = pos.x * 0.05
+	var ny = pos.y * 0.05
+	var off_x = _noise.get_noise_2d(nx, ny) * wobble_amp
+	var off_y = _noise.get_noise_2d(nx + 100, ny + 100) * wobble_amp
+	return Vector2(off_x, off_y)
+
+func _smooth_polygon(points: PackedVector2Array, iterations: int) -> PackedVector2Array:
+	if iterations <= 0 or points.size() < 3: return points
+	var current = points
+	for i in range(iterations):
+		var next_pts = PackedVector2Array()
+		for j in range(current.size()):
+			var p0 = current[j]
+			var p1 = current[(j + 1) % current.size()]
+			next_pts.append(p0.lerp(p1, 0.25))
+			next_pts.append(p0.lerp(p1, 0.75))
+		current = next_pts
+	return current
+
+func generate_map():
+	_noise.seed = map_seed
+	_noise.frequency = noise_freq
+	_moist_noise.seed = map_seed + 100
+	_rng.seed = map_seed
+	
+	_polys_shallow.clear()
+	_polys_sand.clear()
+	_polys_grass.clear()
+	_polys_mountain.clear()
+	_polys_snow.clear()
+	_props.clear()
+	
+	var markers = _get_marker_nodes()
+	var use_default_center = markers.is_empty()
+	var default_center = Vector2(map_width/2.0, map_height/2.0)
+	
+	# Data arrays
+	var raw_h = []
+	raw_h.resize(map_width * map_height)
+	var raw_m = []
+	raw_m.resize(map_width * map_height)
+	
+	# BitMaps
+	var bm_shallow = BitMap.new(); bm_shallow.create(Vector2i(map_width, map_height))
+	var bm_sand = BitMap.new(); bm_sand.create(Vector2i(map_width, map_height))
+	var bm_grass = BitMap.new(); bm_grass.create(Vector2i(map_width, map_height))
+	var bm_mnt = BitMap.new(); bm_mnt.create(Vector2i(map_width, map_height))
+	var bm_snow = BitMap.new(); bm_snow.create(Vector2i(map_width, map_height))
+	
+	# 1. Calculate Height Data
+	for y in range(map_height):
+		for x in range(map_width):
+			var pos_vec = Vector2(x * resolution, y * resolution)
+			
+			# ISLAND MASK CALCULATION
+			var mask_val = 0.0
+			
+			if use_default_center:
+				# Fallback: Single island in center
+				var d = Vector2(x,y).distance_to(Vector2(map_width/2.0, map_height/2.0))
+				var grad = 1.0 - (d / (min(map_width, map_height) * 0.45))
+				mask_val = clamp(grad, 0.0, 1.0)
+			else:
+				# Marker Based: Additive \"Metaballs\" logic
+				for m in markers:
+					# Position relative to Map Node
+					var m_local = m.position 
+					var d = pos_vec.distance_to(m_local)
+					
+					# Falloff logic
+					if d < island_radius:
+						var norm_dist = d / island_radius
+						# (1 - x)^curve
+						var influence = pow(1.0 - norm_dist, falloff_curve)
+						mask_val += influence
+			
+			# Clamp mask so stacking markers doesn't explode height to infinity
+			# But allow it to go > 1.0 slightly to create mountains
+			mask_val = clamp(mask_val, 0.0, 1.5) 
+			
+			# Noise
+			var noise_val = (_noise.get_noise_2d(x, y) + 1.0) / 2.0
+			var h = noise_val * mask_val
+			
+			var m_val = _moist_noise.get_noise_2d(x*2, y*2)
+			
+			raw_h[y * map_width + x] = h
+			raw_m[y * map_width + x] = m_val
+			
+			# Populate BitMaps (Terrain Levels)
+			if h > sea_level - 0.05: bm_shallow.set_bit(x, y, true)
+			if h > sea_level: bm_sand.set_bit(x, y, true)
+			if h > grass_start: bm_grass.set_bit(x, y, true)
+			if h > mountain_start: bm_mnt.set_bit(x, y, true)
+			if h > mountain_start + 0.15: bm_snow.set_bit(x, y, true)
+
+	# 2. Vectorize
+	_polys_shallow = _process_bitmap(bm_shallow)
+	_polys_sand = _process_bitmap(bm_sand)
+	_polys_grass = _process_bitmap(bm_grass)
+	_polys_mountain = _process_bitmap(bm_mnt)
+	_polys_snow = _process_bitmap(bm_snow)
+	
+	# 3. Generate Props
+	_generate_props(raw_h, raw_m)
+	
+	_update_background()
+	queue_redraw()
+
+func _generate_props(h_data, m_data):
+	# Loop through grid with steps
+	var step = 2
+	for y in range(0, map_height, step):
+		for x in range(0, map_width, step):
+			var idx = y * map_width + x
+			var h = h_data[idx]
+			var m = m_data[idx]
+			
+			if h <= sea_level: continue
+			
+			var type = PropType.NONE
+			var world_pos = Vector2(x * resolution, y * resolution)
+			
+			# Valid placement check inside bounds
+			if world_pos.x <= 0 or world_pos.x >= map_width*resolution: continue
+			if world_pos.y <= 0 or world_pos.y >= map_height*resolution: continue
+			
+			# Jitter
+			world_pos += Vector2(_rng.randf_range(-4, 4), _rng.randf_range(-4, 4))
+			
+			# Apply Map Wobble/Distortion so props stick to the ground
+			world_pos += _get_distortion(world_pos)
+			
+			if h > mountain_start:
+				if h < mountain_start + 0.15 and _rng.randf() > 0.8:
+					type = PropType.MT_SMALL
+			elif h > grass_start:
+				if m > 0.1 and _rng.randf() > 0.6: type = PropType.PINE
+				elif m < -0.2 and _rng.randf() > 0.95: type = PropType.RUINS
+				elif _rng.randf() > 0.92: type = PropType.PALM
+			else:
+				# Beach
+				if _rng.randf() > 0.92: type = PropType.PALM
+				
+			if type != PropType.NONE:
+				_props.append({ \"type\": type, \"pos\": world_pos, \"scale\": _rng.randf_range(0.8, 1.2) })
+	
+	_props.sort_custom(func(a,b): return a.pos.y < b.pos.y)
+
+# --- Polygon Processing ---
+
+func _process_bitmap(bm: BitMap) -> Array:
+	var final = []
+	var raw = bm.opaque_to_polygons(Rect2i(0, 0, map_width, map_height), 1.0)
+	for r in raw:
+		if r.size() < 4: continue
+		var scaled = PackedVector2Array()
+		for p in r: scaled.append(p * resolution)
+		
+		# 1. Stylize (Wobble)
+		var stylized = _stylize_line(scaled)
+		
+		# 2. Smooth (Chaikin)
+		stylized = _smooth_polygon(stylized, smoothness)
+		
+		# 3. Clean/Stabilize (Geometry2D)
+		# Merge with empty to resolve self-intersections
+		var cleaned_polys = Geometry2D.merge_polygons(stylized, PackedVector2Array())
+		
+		for poly in cleaned_polys:
+			if poly.size() >= 3:
+				final.append(poly)
+	return final
+
+func _stylize_line(points: PackedVector2Array) -> PackedVector2Array:
+	var result = PackedVector2Array()
+	var seg_len = 10.0 / clamp(wobble_freq, 0.01, 1.0)
+	
+	for i in range(points.size()):
+		var p1 = points[i]
+		var p2 = points[(i + 1) % points.size()]
+		var dist = p1.distance_to(p2)
+		var steps = max(1, int(dist / seg_len))
+		
+		for s in range(steps):
+			var t = float(s) / steps
+			var base = p1.lerp(p2, t)
+			result.append(base + _get_distortion(base))
+	return result
+
+# --- Drawing ---
+
+func _draw_rhumb_lines(size):
+	var centers = [ Vector2(size.x * 0.2, size.y * 0.3), Vector2(size.x * 0.8, size.y * 0.7) ]
+	var c = Color(1,1,1,0.08) # Very faint white overlay
+	
+	for center in centers:
+		draw_arc(center, 20, 0, TAU, 16, c, 2.0)
+		for i in range(16):
+			var ang = i * (TAU / 16.0)
+			var dir = Vector2(cos(ang), sin(ang))
+			var end = center + dir * (size.x * 0.7)
+			draw_line(center, end, c, 2.0)
+
+func _draw_compass(size):
+	var pos = Vector2(size.x - 60, 60)
+	var r = 35.0
+	var c = outline_color
+	var fill = sand_color 
+	
+	draw_circle(pos, r, fill)
+	draw_arc(pos, r, 0, TAU, 32, c, 1.5)
+	
+	var dirs = [Vector2(0, -1), Vector2(1,0), Vector2(0,1), Vector2(-1,0)]
+	for i in range(4):
+		var d = dirs[i]
+		var p1 = pos + d * (r + 5)
+		var p2 = pos + d.rotated(PI/2) * 8
+		var p3 = pos + d.rotated(-PI/2) * 8
+		var pts = PackedVector2Array([pos, p2, p1, p3])
+		draw_colored_polygon(pts, foam_color) 
+		draw_polyline(pts, c, 1.2, true)
+		draw_colored_polygon(PackedVector2Array([pos, p1, p2]), c)
+		
+		if i == 0:
+			draw_string(ThemeDB.fallback_font, p1 + Vector2(-5, -5), \"N\", HORIZONTAL_ALIGNMENT_CENTER, -1, 16, sand_color)
+
+func _draw():
+	var size_px = Vector2(map_width * resolution, map_height * resolution)
+	
+	# Background handled by _update_background() via child node
+
+	
+	# Rhumb Lines (Grid)
+	if show_grid:
+		_draw_rhumb_lines(size_px)
+	
+	# Boundary Frame (so user knows where to put markers)
+	draw_rect(Rect2(Vector2.ZERO, size_px), outline_color, false, 2.0)
+	
+	var draw_l = func(polys, col, outline):
+		for p in polys:
+			draw_colored_polygon(p, col)
+			if outline: draw_polyline(p, outline_color, 1.5, true)
+	
+	# Layers
+	var c_shall = shallow_color; c_shall.a = 0.6
+	draw_l.call(_polys_shallow, c_shall, false)
+	draw_l.call(_polys_sand, sand_color, true) # Outline on Sand
+	draw_l.call(_polys_grass, grass_color, false)
+	draw_l.call(_polys_mountain, mountain_color, false)
+	draw_l.call(_polys_snow, snow_color, false)
+	
+	# Props
+	for p in _props: _draw_prop(p)
+
+	# Compass
+	_draw_compass(size_px)
+
+func _draw_prop(p):
+	var pos = p.pos
+	var s = p.scale * (resolution * 0.1) # Scale multiplier
+	
+	match p.type:
+		PropType.PALM:
+			var top = pos + Vector2(2, -10 * s)
+			draw_line(pos, top, outline_color, 1.5)
+			for i in range(5):
+				var ang = i * PI * 0.4
+				draw_line(top, top + Vector2(cos(ang), sin(ang)) * (6*s), outline_color, 1.0)
+		PropType.PINE:
+			var top = pos + Vector2(0, -12 * s)
+			var w = 4 * s
+			var pts = [pos + Vector2(-w, -2*s), top, pos + Vector2(w, -2*s)]
+			draw_colored_polygon(PackedVector2Array(pts), grass_color.darkened(0.2))
+			draw_polyline(PackedVector2Array(pts), outline_color, 1.2)
+			draw_line(pos, pos + Vector2(0, -2*s), outline_color, 2.0)
+		PropType.MT_SMALL:
+			var h = 8 * s
+			var w = 6 * s
+			var pts = [pos + Vector2(-w, 0), pos + Vector2(0, -h), pos + Vector2(w, 0)]
+			draw_colored_polygon(PackedVector2Array(pts), mountain_color.darkened(0.1))
+			draw_polyline(PackedVector2Array(pts), outline_color, 1.5)
+			draw_line(pts[1], pts[1] + Vector2(2, 4), outline_color, 1.0)
+		PropType.RUINS:
+			var w = 3 * s; var h = 5 * s
+			var r = Rect2(pos + Vector2(-w, -h), Vector2(w, h))
+			draw_rect(r, mountain_color.darkened(0.2), true)
+			draw_rect(r, outline_color, false, 1.2)
+"
+
+[sub_resource type="Shader" id="Shader_phqa7"]
+code = "shader_type canvas_item;
+
+// --- Colors ---
+uniform vec4 bg_color : source_color = vec4(0.0, 0.4, 0.85, 1.0);
+uniform vec4 wave_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+
+// --- Settings ---
+// Controls how many V's appear (0.0 = none, 1.0 = everywhere)
+uniform float density : hint_range(0.0, 1.0) = 0.1; 
+
+// Controls the speed of the animation cycle
+uniform float speed : hint_range(0.1, 2.0) = 0.5;
+
+// High default scale to make waves look small
+uniform vec2 wave_scale = vec2(80.0, 40.0); 
+
+uniform float wave_thickness : hint_range(0.01, 0.2) = 0.05;
+uniform float wave_height : hint_range(0.0, 1.0) = 0.3;
+
+// Pseudo-random number generator
+float random(vec2 uv) {
+    return fract(sin(dot(uv.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+}
+
+float inverted_v_wave(vec2 uv, float time_offset) {
+    vec2 id = floor(uv);          // Integer ID of the cell
+    vec2 f = fract(uv) - 0.5;     // Local coordinates
+    
+    // Calculate a random value for this cell
+    // We add floor(TIME) to the ID so the \"active\" cells change location over time
+    float r = random(id + floor(TIME * speed * 0.2) + time_offset);
+    
+    // --- DENSITY CHECK ---
+    // If the random value is higher than our density setting, do not draw this wave.
+    if (r > density) {
+        return 0.0;
+    }
+
+    // --- ANIMATION ---
+    // Make the cycle unique per cell so they don't pulse in unison
+    float t = TIME * speed + r * 10.0;
+    float cycle = fract(t);
+
+    // Opacity: Fades in and out (0 -> 1 -> 0)
+    float opacity = sin(cycle * 3.14159);
+    
+    // Movement: Slide slightly upward while fading
+    float slide = (cycle - 0.5) * 0.3;
+    vec2 p = f;
+    p.y += slide;
+
+    // --- SHAPE: Inverted V ( /\\ ) ---
+    float slope = 2.5; // Controls how wide the V is
+    float v_shape = abs(p.y - abs(p.x) * slope + wave_height);
+    
+    // Draw the line
+    float line = smoothstep(wave_thickness, wave_thickness - 0.02, v_shape);
+    
+    // Mask the sides so it doesn't touch cell borders
+    float mask = smoothstep(0.5, 0.2, abs(p.x));
+
+    return line * mask * opacity;
+}
+
+void fragment() {
+    vec2 uv = UV * wave_scale;
+    
+    float waves = 0.0;
+    
+    // Layer 1
+    waves += inverted_v_wave(uv, 0.0);
+    
+    // Layer 2 (Offset by half a cell to fill gaps)
+    waves += inverted_v_wave(uv + vec2(0.5, 0.5), 13.0);
+    
+    vec3 final_color = mix(bg_color.rgb, wave_color.rgb, clamp(waves, 0.0, 1.0));
+    COLOR = vec4(final_color, 1.0);
+}"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vnis4"]
+shader = SubResource("Shader_phqa7")
+shader_parameter/bg_color = Color(0.208, 0.651, 0.918, 1)
+shader_parameter/wave_color = Color(1, 1, 1, 1)
+shader_parameter/density = 0.030000001425
+shader_parameter/speed = 0.5
+shader_parameter/wave_scale = Vector2(80, 80)
+shader_parameter/wave_thickness = 0.07000000262648
+shader_parameter/wave_height = 0.3
+
+[node name="Terrain" type="Node2D"]
+script = SubResource("GDScript_phqa7")
+map_seed = 352
+map_width = 257
+map_height = 145
+resolution = 5
+noise_freq = 0.017
+water_material = SubResource("ShaderMaterial_vnis4")
+paper_color = Color(0.16862746, 0.38431373, 0.65882355, 1)
+wobble_amp = 80.0
+
+[node name="Marker2D" type="Marker2D" parent="."]
+position = Vector2(452, 89)
+
+[node name="Marker2D3" type="Marker2D" parent="."]
+position = Vector2(684, 596)
+
+[node name="Marker2D2" type="Marker2D" parent="."]
+position = Vector2(990, 121)
+
+[node name="Marker2D4" type="Marker2D" parent="."]
+position = Vector2(1304, 505)

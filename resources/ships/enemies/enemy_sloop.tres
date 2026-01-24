@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ShipData" load_steps=3 format=3 uid="uid://bnmfn131ogkcs"]
+
+[ext_resource type="Script" uid="uid://b34rkb8d57igq" path="res://scripts/resources/ship_data.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://bjtlq1ac45q8h" path="res://assets/ui/enemy-sailboat.png" id="2_3dqj3"]
+
+[resource]
+script = ExtResource("1")
+id = "sloop"
+name = "Enemy Sloop"
+cargo_capacity = 50
+max_hull = 100
+color = Color(0.89, 0.35, 0.35, 1)
+visual_polygon = PackedVector2Array(0, -20, 10, 10, 0, 5, -10, 10)
+texture = ExtResource("2_3dqj3")
+texture_scale = Vector2(0.3, 0.3)
+type = 1

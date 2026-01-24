@@ -1,0 +1,20 @@
+[gd_scene load_steps=13 format=3 uid="uid://sda83s6mendo"]
+
+[ext_resource type="Script" uid="uid://cj3dbwcalyv6w" path="res://scripts/game_manager.gd" id="1_hwd4i"]
+[ext_resource type="Script" uid="uid://bqdy67w1vkv6t" path="res://scripts/resources/item_data.gd" id="2_aonbx"]
+[ext_resource type="Resource" path="res://resources/items/fish.tres" id="3_lcbjr"]
+[ext_resource type="Resource" path="res://resources/items/sugarcane.tres" id="4_30v7y"]
+[ext_resource type="Resource" path="res://resources/items/timber.tres" id="5_5xtl8"]
+[ext_resource type="Script" uid="uid://b34rkb8d57igq" path="res://scripts/resources/ship_data.gd" id="6_cjvif"]
+[ext_resource type="Resource" uid="uid://dwwcugxl0tsa6" path="res://resources/ships/caravel.tres" id="7_ry0e6"]
+[ext_resource type="Resource" uid="uid://cx2qjxsxeyug7" path="res://resources/ships/galleon.tres" id="8_pc0jn"]
+[ext_resource type="Resource" uid="uid://ock0ck1m8m5o" path="res://resources/ships/sloop.tres" id="9_c7a3q"]
+[ext_resource type="Resource" uid="uid://bob3dnsr46885" path="res://resources/ships/enemies/enemy_caravel.tres" id="10_4vth2"]
+[ext_resource type="Resource" uid="uid://43ngdxd5j1io" path="res://resources/ships/enemies/enemy_galleon.tres" id="11_yxe1x"]
+[ext_resource type="Resource" uid="uid://bnmfn131ogkcs" path="res://resources/ships/enemies/enemy_sloop.tres" id="12_jrl6a"]
+
+[node name="GameManager" type="Node"]
+script = ExtResource("1_hwd4i")
+all_items = Array[ExtResource("2_aonbx")]([ExtResource("3_lcbjr"), ExtResource("4_30v7y"), ExtResource("5_5xtl8")])
+ship_database = Array[ExtResource("6_cjvif")]([ExtResource("7_ry0e6"), ExtResource("8_pc0jn"), ExtResource("9_c7a3q")])
+enemy_ship_database = Array[ExtResource("6_cjvif")]([ExtResource("10_4vth2"), ExtResource("11_yxe1x"), ExtResource("12_jrl6a")])

@@ -1,0 +1,71 @@
+[gd_scene load_steps=5 format=3 uid="uid://c8q7j5x2k3y1"]
+
+[ext_resource type="Script" path="res://scripts/main_menu.gd" id="1_menu"]
+[ext_resource type="FontFile" uid="uid://bgdtpse7ydtaw" path="res://assets/Pirata_One/PirataOne-Regular.ttf" id="2_title"]
+[ext_resource type="FontFile" uid="uid://d1qcor30kfluu" path="res://assets/IM_Fell_English/IMFellEnglish-Regular.ttf" id="3_btn"]
+[ext_resource type="Theme" uid="uid://d2i5mtbiap2py" path="res://resources/pixel_pirate.tres" id="4_theme"]
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_menu")
+
+[node name="Bg" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.156863, 0.235294, 0.329412, 1)
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -200.0
+offset_top = 100.0
+offset_right = 200.0
+offset_bottom = 180.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.8, 0.7, 0.5, 1)
+theme_override_fonts/font = ExtResource("2_title")
+theme_override_font_sizes/font_size = 80
+text = "Unknown Waters"
+horizontal_alignment = 1
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -100.0
+offset_top = -50.0
+offset_right = 100.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="PlayBtn" type="Button" parent="VBox"]
+custom_minimum_size = Vector2(200, 60)
+layout_mode = 2
+theme = ExtResource("4_theme")
+theme_override_fonts/font = ExtResource("3_btn")
+theme_override_font_sizes/font_size = 32
+text = "Set Sail"
+
+[node name="ExitBtn" type="Button" parent="VBox"]
+custom_minimum_size = Vector2(200, 60)
+layout_mode = 2
+theme = ExtResource("4_theme")
+theme_override_fonts/font = ExtResource("3_btn")
+theme_override_font_sizes/font_size = 32
+text = "Exit Game"
