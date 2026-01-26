@@ -38,9 +38,7 @@ extends Node2D
 	set(value): mountain_start = value; _request_regen()
 
 @export_category(\"Pirate Style\")
-@export var water_material: Material :
-	set(value): water_material = value; _request_regen()
-@export var paper_color: Color = Color(\"2b6d82\") : # Deep Water
+@export var paper_color: Color = Color(\"2b6d82\"): # Deep Water
 	set(value): paper_color = value; _request_regen()
 @export var outline_color: Color = Color(\"1a262b\") # Dark Ink
 @export var wobble_amp: float = 3.0 :
@@ -49,9 +47,6 @@ extends Node2D
 	set(value): wobble_freq = value; _request_regen()
 @export_range(0, 5) var smoothness: int = 0 :
 	set(value): smoothness = value; _request_regen()
-
-@export var show_grid: bool = true :
-	set(value): show_grid = value; queue_redraw()
 
 @export var shallow_color: Color = Color(\"4fa4b8\") # Turquoise
 @export var sand_color: Color = Color(\"e8ddb5\") # Warm Sand
@@ -81,25 +76,6 @@ var _cooldown: float = 0.0
 func _ready():
 	_init_noise()
 	generate_map()
-
-func _update_background():
-	var bg = get_node_or_null(\"WaterBackground\")
-	if not bg:
-		bg = ColorRect.new()
-		bg.name = \"WaterBackground\"
-		add_child(bg)
-		move_child(bg, 0) # Ensure it is first
-	
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bg.show_behind_parent = true
-	bg.size = Vector2(map_width * resolution, map_height * resolution)
-	
-	if water_material:
-		bg.material = water_material
-		bg.color = Color.WHITE # Material takes precedence
-	else:
-		bg.material = null
-		bg.color = paper_color
 
 func _process(delta):
 	if not Engine.is_editor_hint(): return
@@ -254,7 +230,6 @@ func generate_map():
 	# 3. Generate Props
 	_generate_props(raw_h, raw_m)
 	
-	_update_background()
 	queue_redraw()
 
 func _generate_props(h_data, m_data):
@@ -340,58 +315,21 @@ func _stylize_line(points: PackedVector2Array) -> PackedVector2Array:
 
 # --- Drawing ---
 
-func _draw_rhumb_lines(size):
-	var centers = [ Vector2(size.x * 0.2, size.y * 0.3), Vector2(size.x * 0.8, size.y * 0.7) ]
-	var c = Color(1,1,1,0.08) # Very faint white overlay
-	
-	for center in centers:
-		draw_arc(center, 20, 0, TAU, 16, c, 2.0)
-		for i in range(16):
-			var ang = i * (TAU / 16.0)
-			var dir = Vector2(cos(ang), sin(ang))
-			var end = center + dir * (size.x * 0.7)
-			draw_line(center, end, c, 2.0)
-
-func _draw_compass(size):
-	var pos = Vector2(size.x - 60, 60)
-	var r = 35.0
-	var c = outline_color
-	var fill = sand_color 
-	
-	draw_circle(pos, r, fill)
-	draw_arc(pos, r, 0, TAU, 32, c, 1.5)
-	
-	var dirs = [Vector2(0, -1), Vector2(1,0), Vector2(0,1), Vector2(-1,0)]
-	for i in range(4):
-		var d = dirs[i]
-		var p1 = pos + d * (r + 5)
-		var p2 = pos + d.rotated(PI/2) * 8
-		var p3 = pos + d.rotated(-PI/2) * 8
-		var pts = PackedVector2Array([pos, p2, p1, p3])
-		draw_colored_polygon(pts, foam_color) 
-		draw_polyline(pts, c, 1.2, true)
-		draw_colored_polygon(PackedVector2Array([pos, p1, p2]), c)
-		
-		if i == 0:
-			draw_string(ThemeDB.fallback_font, p1 + Vector2(-5, -5), \"N\", HORIZONTAL_ALIGNMENT_CENTER, -1, 16, sand_color)
-
 func _draw():
 	var size_px = Vector2(map_width * resolution, map_height * resolution)
 	
-	# Background handled by _update_background() via child node
-
-	
-	# Rhumb Lines (Grid)
-	if show_grid:
-		_draw_rhumb_lines(size_px)
-	
-	# Boundary Frame (so user knows where to put markers)
+	# Boundary Frame
 	draw_rect(Rect2(Vector2.ZERO, size_px), outline_color, false, 2.0)
 	
+	# Helper lambda to draw filled polygon + closed outline
 	var draw_l = func(polys, col, outline):
 		for p in polys:
 			draw_colored_polygon(p, col)
-			if outline: draw_polyline(p, outline_color, 1.5, true)
+			if outline and not p.is_empty():
+				# Create a temp copy and close the loop by appending the start point
+				var p_closed = p.duplicate()
+				p_closed.append(p[0])
+				draw_polyline(p_closed, outline_color, 1.5, true)
 	
 	# Layers
 	var c_shall = shallow_color; c_shall.a = 0.6
@@ -403,9 +341,6 @@ func _draw():
 	
 	# Props
 	for p in _props: _draw_prop(p)
-
-	# Compass
-	_draw_compass(size_px)
 
 func _draw_prop(p):
 	var pos = p.pos
@@ -423,14 +358,24 @@ func _draw_prop(p):
 			var w = 4 * s
 			var pts = [pos + Vector2(-w, -2*s), top, pos + Vector2(w, -2*s)]
 			draw_colored_polygon(PackedVector2Array(pts), grass_color.darkened(0.2))
-			draw_polyline(PackedVector2Array(pts), outline_color, 1.2)
+			
+			# Ensure closed loop for prop outline
+			var pts_closed = PackedVector2Array(pts)
+			pts_closed.append(pts[0])
+			draw_polyline(pts_closed, outline_color, 1.2)
+			
 			draw_line(pos, pos + Vector2(0, -2*s), outline_color, 2.0)
 		PropType.MT_SMALL:
 			var h = 8 * s
 			var w = 6 * s
 			var pts = [pos + Vector2(-w, 0), pos + Vector2(0, -h), pos + Vector2(w, 0)]
 			draw_colored_polygon(PackedVector2Array(pts), mountain_color.darkened(0.1))
-			draw_polyline(PackedVector2Array(pts), outline_color, 1.5)
+			
+			# Ensure closed loop for prop outline
+			var pts_closed = PackedVector2Array(pts)
+			pts_closed.append(pts[0])
+			draw_polyline(pts_closed, outline_color, 1.5)
+			
 			draw_line(pts[1], pts[1] + Vector2(2, 4), outline_color, 1.0)
 		PropType.RUINS:
 			var w = 3 * s; var h = 5 * s
@@ -536,9 +481,277 @@ map_width = 257
 map_height = 145
 resolution = 5
 noise_freq = 0.017
-water_material = SubResource("ShaderMaterial_vnis4")
 paper_color = Color(0.16862746, 0.38431373, 0.65882355, 1)
 wobble_amp = 80.0
+
+[node name="MapDecorations" type="Node2D" parent="."]
+z_index = 128
+
+[node name="Grid_Group" type="Node2D" parent="MapDecorations"]
+
+[node name="Rhumb1" type="Node2D" parent="MapDecorations/Grid_Group"]
+position = Vector2(256, 216)
+
+[node name="Circle" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb1"]
+points = PackedVector2Array(20, 0, 19.615705, 3.9018064, 18.47759, 7.6536684, 16.629393, 11.111404, 14.142136, 14.142136, 11.111404, 16.629393, 7.6536684, 18.47759, 3.9018064, 19.615705, 1.2246064e-15, 20, -3.9018064, 19.615705, -7.6536684, 18.47759, -11.111404, 16.629393, -14.142136, 14.142136, -16.629393, 11.111404, -18.47759, 7.6536684, -19.615705, 3.9018064, -20, 2.4492127e-15, -19.615705, -3.9018064, -18.47759, -7.6536684, -16.629393, -11.111404, -14.142136, -14.142136, -11.111404, -16.629393, -7.6536684, -18.47759, -3.9018064, -19.615705, -3.673819e-15, -20, 3.9018064, -19.615705, 7.6536684, -18.47759, 11.111404, -16.629393, 14.142136, -14.142136, 16.629393, -11.111404, 18.47759, -7.6536684, 19.615705, -3.9018064, 20, -4.8984254e-15)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_0" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb1"]
+points = PackedVector2Array(0, 0, 896, 0)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_1" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb1"]
+points = PackedVector2Array(0, 0, 827.796, 342.88434)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_2" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb1"]
+points = PackedVector2Array(0, 0, 633.5677, 633.5677)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_3" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb1"]
+points = PackedVector2Array(0, 0, 342.88434, 827.796)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_4" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb1"]
+points = PackedVector2Array(0, 0, 5.4862365e-14, 896)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_5" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb1"]
+points = PackedVector2Array(0, 0, -342.88434, 827.796)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_6" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb1"]
+points = PackedVector2Array(0, 0, -633.5677, 633.5677)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_7" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb1"]
+points = PackedVector2Array(0, 0, -827.796, 342.88434)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_8" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb1"]
+points = PackedVector2Array(0, 0, -896, 1.0972473e-13)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_9" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb1"]
+points = PackedVector2Array(0, 0, -827.796, -342.88434)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_10" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb1"]
+points = PackedVector2Array(0, 0, -633.5677, -633.5677)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_11" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb1"]
+points = PackedVector2Array(0, 0, -342.88434, -827.796)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_12" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb1"]
+points = PackedVector2Array(0, 0, -1.645871e-13, -896)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_13" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb1"]
+points = PackedVector2Array(0, 0, 342.88434, -827.796)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_14" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb1"]
+points = PackedVector2Array(0, 0, 633.5677, -633.5677)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_15" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb1"]
+points = PackedVector2Array(0, 0, 827.796, -342.88434)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Rhumb2" type="Node2D" parent="MapDecorations/Grid_Group"]
+position = Vector2(1024, 504)
+
+[node name="Circle" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb2"]
+points = PackedVector2Array(20, 0, 19.615705, 3.9018064, 18.47759, 7.6536684, 16.629393, 11.111404, 14.142136, 14.142136, 11.111404, 16.629393, 7.6536684, 18.47759, 3.9018064, 19.615705, 1.2246064e-15, 20, -3.9018064, 19.615705, -7.6536684, 18.47759, -11.111404, 16.629393, -14.142136, 14.142136, -16.629393, 11.111404, -18.47759, 7.6536684, -19.615705, 3.9018064, -20, 2.4492127e-15, -19.615705, -3.9018064, -18.47759, -7.6536684, -16.629393, -11.111404, -14.142136, -14.142136, -11.111404, -16.629393, -7.6536684, -18.47759, -3.9018064, -19.615705, -3.673819e-15, -20, 3.9018064, -19.615705, 7.6536684, -18.47759, 11.111404, -16.629393, 14.142136, -14.142136, 16.629393, -11.111404, 18.47759, -7.6536684, 19.615705, -3.9018064, 20, -4.8984254e-15)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_0" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb2"]
+points = PackedVector2Array(0, 0, 896, 0)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_1" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb2"]
+points = PackedVector2Array(0, 0, 827.796, 342.88434)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_2" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb2"]
+points = PackedVector2Array(0, 0, 633.5677, 633.5677)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_3" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb2"]
+points = PackedVector2Array(0, 0, 342.88434, 827.796)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_4" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb2"]
+points = PackedVector2Array(0, 0, 5.4862365e-14, 896)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_5" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb2"]
+points = PackedVector2Array(0, 0, -342.88434, 827.796)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_6" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb2"]
+points = PackedVector2Array(0, 0, -633.5677, 633.5677)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_7" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb2"]
+points = PackedVector2Array(0, 0, -827.796, 342.88434)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_8" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb2"]
+points = PackedVector2Array(0, 0, -896, 1.0972473e-13)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_9" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb2"]
+points = PackedVector2Array(0, 0, -827.796, -342.88434)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_10" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb2"]
+points = PackedVector2Array(0, 0, -633.5677, -633.5677)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_11" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb2"]
+points = PackedVector2Array(0, 0, -342.88434, -827.796)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_12" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb2"]
+points = PackedVector2Array(0, 0, -1.645871e-13, -896)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_13" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb2"]
+points = PackedVector2Array(0, 0, 342.88434, -827.796)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_14" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb2"]
+points = PackedVector2Array(0, 0, 633.5677, -633.5677)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Line_15" type="Line2D" parent="MapDecorations/Grid_Group/Rhumb2"]
+points = PackedVector2Array(0, 0, 827.796, -342.88434)
+width = 2.0
+default_color = Color(1, 1, 1, 0.08)
+
+[node name="Compass_Group" type="Node2D" parent="MapDecorations"]
+position = Vector2(1220, 60)
+
+[node name="Background" type="Polygon2D" parent="MapDecorations/Compass_Group"]
+color = Color(0.9098039, 0.8666667, 0.70980394, 1)
+polygon = PackedVector2Array(35, 0, 34.327484, 6.8281612, 32.33578, 13.39392, 29.101437, 19.444958, 24.748737, 24.748737, 19.444958, 29.101437, 13.39392, 32.33578, 6.8281612, 34.327484, 2.1430611e-15, 35, -6.8281612, 34.327484, -13.39392, 32.33578, -19.444958, 29.101437, -24.748737, 24.748737, -29.101437, 19.444958, -32.33578, 13.39392, -34.327484, 6.8281612, -35, 4.2861222e-15, -34.327484, -6.8281612, -32.33578, -13.39392, -29.101437, -19.444958, -24.748737, -24.748737, -19.444958, -29.101437, -13.39392, -32.33578, -6.8281612, -34.327484, -6.4291834e-15, -35, 6.8281612, -34.327484, 13.39392, -32.33578, 19.444958, -29.101437, 24.748737, -24.748737, 29.101437, -19.444958, 32.33578, -13.39392, 34.327484, -6.8281612)
+
+[node name="Outline" type="Line2D" parent="MapDecorations/Compass_Group"]
+points = PackedVector2Array(35, 0, 34.327484, 6.8281612, 32.33578, 13.39392, 29.101437, 19.444958, 24.748737, 24.748737, 19.444958, 29.101437, 13.39392, 32.33578, 6.8281612, 34.327484, 2.1430611e-15, 35, -6.8281612, 34.327484, -13.39392, 32.33578, -19.444958, 29.101437, -24.748737, 24.748737, -29.101437, 19.444958, -32.33578, 13.39392, -34.327484, 6.8281612, -35, 4.2861222e-15, -34.327484, -6.8281612, -32.33578, -13.39392, -29.101437, -19.444958, -24.748737, -24.748737, -19.444958, -29.101437, -13.39392, -32.33578, -6.8281612, -34.327484, -6.4291834e-15, -35, 6.8281612, -34.327484, 13.39392, -32.33578, 19.444958, -29.101437, 24.748737, -24.748737, 29.101437, -19.444958, 32.33578, -13.39392, 34.327484, -6.8281612, 35, -8.5722445e-15)
+width = 1.5
+default_color = Color(0.101960786, 0.14901961, 0.16862746, 1)
+
+[node name="Point_N" type="Node2D" parent="MapDecorations/Compass_Group"]
+
+[node name="_Polygon2D_36584" type="Polygon2D" parent="MapDecorations/Compass_Group/Point_N"]
+color = Color(0.7607843, 0.9254902, 0.9490196, 1)
+polygon = PackedVector2Array(0, 0, 8, 3.496911e-07, 0, -40, -8, 3.496911e-07)
+
+[node name="_Polygon2D_36585" type="Polygon2D" parent="MapDecorations/Compass_Group/Point_N"]
+color = Color(0.101960786, 0.14901961, 0.16862746, 1)
+polygon = PackedVector2Array(0, 0, 0, -40, 8, 3.496911e-07)
+
+[node name="_Line2D_36586" type="Line2D" parent="MapDecorations/Compass_Group/Point_N"]
+points = PackedVector2Array(0, 0, 8, 3.496911e-07, 0, -40, -8, 3.496911e-07, 0, 0)
+width = 1.2
+default_color = Color(0.101960786, 0.14901961, 0.16862746, 1)
+
+[node name="Label_N" type="Label" parent="MapDecorations/Compass_Group/Point_N"]
+modulate = Color(0.9098039, 0.8666667, 0.70980394, 1)
+offset_left = -10.0
+offset_top = -65.0
+offset_right = -10.0
+offset_bottom = -65.0
+text = "N"
+horizontal_alignment = 1
+
+[node name="Point_E" type="Node2D" parent="MapDecorations/Compass_Group"]
+
+[node name="_Polygon2D_36587" type="Polygon2D" parent="MapDecorations/Compass_Group/Point_E"]
+color = Color(0.7607843, 0.9254902, 0.9490196, 1)
+polygon = PackedVector2Array(0, 0, -3.496911e-07, 8, 40, 0, -3.496911e-07, -8)
+
+[node name="_Polygon2D_36588" type="Polygon2D" parent="MapDecorations/Compass_Group/Point_E"]
+color = Color(0.101960786, 0.14901961, 0.16862746, 1)
+polygon = PackedVector2Array(0, 0, 40, 0, -3.496911e-07, 8)
+
+[node name="_Line2D_36589" type="Line2D" parent="MapDecorations/Compass_Group/Point_E"]
+points = PackedVector2Array(0, 0, -3.496911e-07, 8, 40, 0, -3.496911e-07, -8, 0, 0)
+width = 1.2
+default_color = Color(0.101960786, 0.14901961, 0.16862746, 1)
+
+[node name="Point_S" type="Node2D" parent="MapDecorations/Compass_Group"]
+
+[node name="_Polygon2D_36590" type="Polygon2D" parent="MapDecorations/Compass_Group/Point_S"]
+color = Color(0.7607843, 0.9254902, 0.9490196, 1)
+polygon = PackedVector2Array(0, 0, -8, -3.496911e-07, 0, 40, 8, -3.496911e-07)
+
+[node name="_Polygon2D_36591" type="Polygon2D" parent="MapDecorations/Compass_Group/Point_S"]
+color = Color(0.101960786, 0.14901961, 0.16862746, 1)
+polygon = PackedVector2Array(0, 0, 0, 40, -8, -3.496911e-07)
+
+[node name="_Line2D_36592" type="Line2D" parent="MapDecorations/Compass_Group/Point_S"]
+points = PackedVector2Array(0, 0, -8, -3.496911e-07, 0, 40, 8, -3.496911e-07, 0, 0)
+width = 1.2
+default_color = Color(0.101960786, 0.14901961, 0.16862746, 1)
+
+[node name="Point_W" type="Node2D" parent="MapDecorations/Compass_Group"]
+
+[node name="_Polygon2D_36593" type="Polygon2D" parent="MapDecorations/Compass_Group/Point_W"]
+color = Color(0.7607843, 0.9254902, 0.9490196, 1)
+polygon = PackedVector2Array(0, 0, 3.496911e-07, -8, -40, 0, 3.496911e-07, 8)
+
+[node name="_Polygon2D_36594" type="Polygon2D" parent="MapDecorations/Compass_Group/Point_W"]
+color = Color(0.101960786, 0.14901961, 0.16862746, 1)
+polygon = PackedVector2Array(0, 0, -40, 0, 3.496911e-07, -8)
+
+[node name="_Line2D_36595" type="Line2D" parent="MapDecorations/Compass_Group/Point_W"]
+points = PackedVector2Array(0, 0, 3.496911e-07, -8, -40, 0, 3.496911e-07, 8, 0, 0)
+width = 1.2
+default_color = Color(0.101960786, 0.14901961, 0.16862746, 1)
+
+[node name="WaterBackground" type="ColorRect" parent="."]
+show_behind_parent = true
+material = SubResource("ShaderMaterial_vnis4")
+offset_right = 1286.0
+offset_bottom = 726.0
+mouse_filter = 2
 
 [node name="Marker2D" type="Marker2D" parent="."]
 position = Vector2(452, 89)

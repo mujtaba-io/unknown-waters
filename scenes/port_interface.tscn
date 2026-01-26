@@ -1,11 +1,11 @@
-[gd_scene load_steps=10 format=3 uid="uid://n4lkstq04i51"]
+[gd_scene load_steps=9 format=3 uid="uid://n4lkstq04i51"]
 
 [ext_resource type="Script" uid="uid://bdv5chbbt2rhe" path="res://scripts/port_interface.gd" id="1_port"]
 [ext_resource type="FontFile" uid="uid://b2mqq1ske8dy" path="res://assets/IM_Fell_English/IMFellEnglish-Italic.ttf" id="2_34coa"]
-[ext_resource type="Shader" path="res://resources/shaders/parchment.gdshader" id="3_parchment"]
-[ext_resource type="Shader" path="res://resources/shaders/wood.gdshader" id="4_wood"]
+[ext_resource type="Shader" uid="uid://bbvrqk774fmwf" path="res://resources/shaders/parchment.gdshader" id="3_parchment"]
+[ext_resource type="Shader" uid="uid://cy1ht3bfwjl5e" path="res://resources/shaders/wood.gdshader" id="4_wood"]
 [ext_resource type="FontFile" uid="uid://d1qcor30kfluu" path="res://assets/IM_Fell_English/IMFellEnglish-Regular.ttf" id="5_font_reg"]
-[ext_resource type="Theme" path="res://resources/pixel_pirate.tres" id="theme_pirate"]
+[ext_resource type="Theme" uid="uid://d2i5mtbiap2py" path="res://resources/pixel_pirate.tres" id="theme_pirate"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_parchment"]
 shader = ExtResource("3_parchment")
@@ -20,10 +20,6 @@ shader_parameter/dark_color = Color(0.25, 0.15, 0.05, 1)
 shader_parameter/grain_scale = 10.0
 shader_parameter/distortion = 0.5
 
-
-
-
-
 [node name="PortInterface" type="Control"]
 layout_mode = 3
 anchor_left = 0.3
@@ -32,8 +28,8 @@ anchor_bottom = 1.0
 offset_left = -102.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_port")
 theme = ExtResource("theme_pirate")
+script = ExtResource("1_port")
 
 [node name="PortLayer" type="Control" parent="."]
 layout_mode = 1
@@ -93,7 +89,6 @@ mouse_default_cursor_shape = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 0.8, 1)
 theme_override_fonts/font = ExtResource("5_font_reg")
 theme_override_font_sizes/font_size = 28
-
 text = "Marketplace"
 
 [node name="ShipyardBtn" type="Button" parent="PortLayer/Center/HBox"]
@@ -103,7 +98,6 @@ mouse_default_cursor_shape = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 0.8, 1)
 theme_override_fonts/font = ExtResource("5_font_reg")
 theme_override_font_sizes/font_size = 28
-
 text = "Shipyard"
 
 [node name="MarketLayer" type="Control" parent="."]
@@ -150,7 +144,6 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 0.8, 1)
 theme_override_fonts/font = ExtResource("5_font_reg")
 theme_override_font_sizes/font_size = 20
-
 text = "< BACK"
 
 [node name="Lbl" type="Label" parent="MarketLayer/Margin/VBox/HBox"]
@@ -212,29 +205,27 @@ layout_mode = 2
 size_flags_horizontal = 0
 theme_override_fonts/font = ExtResource("5_font_reg")
 theme_override_font_sizes/font_size = 20
-
 text = "< BACK"
 
 [node name="Title" type="Label" parent="ShipyardLayer/Margin/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 48
 theme_override_fonts/font = ExtResource("2_34coa")
+theme_override_font_sizes/font_size = 48
 text = "Local Shipyard"
 horizontal_alignment = 1
 
 [node name="InfoLbl" type="Label" parent="ShipyardLayer/Margin/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 32
 theme_override_fonts/font = ExtResource("5_font_reg")
+theme_override_font_sizes/font_size = 32
 text = "Hull Integrity: 100/100"
 horizontal_alignment = 1
 
 [node name="RepairBtn" type="Button" parent="ShipyardLayer/Margin/VBox"]
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
-theme_override_font_sizes/font_size = 32
 theme_override_fonts/font = ExtResource("5_font_reg")
-
+theme_override_font_sizes/font_size = 32
 text = "REPAIR SHIP"
 
 [node name="HSeparator" type="HSeparator" parent="ShipyardLayer/Margin/VBox"]
@@ -242,17 +233,16 @@ layout_mode = 2
 
 [node name="OfferLbl" type="Label" parent="ShipyardLayer/Margin/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
 theme_override_fonts/font = ExtResource("5_font_reg")
+theme_override_font_sizes/font_size = 28
 text = "For Sale: Sloop"
 horizontal_alignment = 1
 
 [node name="BuyShipBtn" type="Button" parent="ShipyardLayer/Margin/VBox"]
 custom_minimum_size = Vector2(0, 70)
 layout_mode = 2
-theme_override_font_sizes/font_size = 26
 theme_override_fonts/font = ExtResource("5_font_reg")
-
+theme_override_font_sizes/font_size = 26
 text = "BUY SHIP"
 
 [node name="Overlay" type="Control" parent="."]
@@ -278,7 +268,6 @@ offset_right = 250.0
 offset_bottom = 125.0
 grow_horizontal = 2
 grow_vertical = 2
-
 
 [node name="VBox" type="VBoxContainer" parent="Overlay/TransactionPanel"]
 layout_mode = 1
